@@ -201,7 +201,8 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t *self,
         PIO_ANY_OFFSET,
         PIO_FIFO_TYPE_DEFAULT,
         PIO_MOV_STATUS_DEFAULT,
-        PIO_MOV_N_DEFAULT
+        PIO_MOV_N_DEFAULT,
+        0      // rx buffer size
         );
 
     self->playing = false;

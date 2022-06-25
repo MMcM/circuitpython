@@ -137,6 +137,13 @@ typedef struct {
     int background_stride_in_bytes;
     bool dma_completed_write, byteswap;
     bool dma_completed_read;
+
+    // interrupt RX buffer
+    uint32_t *rx_buffer;
+    uint16_t rx_buffer_size;
+    uint16_t rx_buffer_in;
+    uint16_t rx_buffer_out;
+
     #if PICO_PIO_VERSION > 0
     memorymap_addressrange_obj_t rxfifo_obj;
     #endif
@@ -165,7 +172,8 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     bool sideset_enable,
     int wrap_target, int wrap, int offset,
     int fifo_type,
-    int mov_status_type, int mov_status_n
+    int mov_status_type, int mov_status_n,
+    int rx_buffer_size
     );
 
 uint8_t rp2pio_statemachine_program_offset(rp2pio_statemachine_obj_t *self);

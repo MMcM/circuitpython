@@ -56,7 +56,8 @@ void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self,
         0, -1, // wrap settings
         PIO_ANY_OFFSET,
         PIO_FIFO_TYPE_DEFAULT,
-        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT);
+        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT,
+        0);    // rx buffer size
 
     common_hal_pulseio_pulsein_pause(self);
 

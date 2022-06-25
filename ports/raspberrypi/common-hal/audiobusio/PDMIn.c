@@ -62,7 +62,9 @@ void common_hal_audiobusio_pdmin_construct(audiobusio_pdmin_obj_t *self,
         0, -1, // wrap settings
         PIO_ANY_OFFSET,
         PIO_FIFO_TYPE_DEFAULT,
-        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT);
+        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT,
+        0);    // rx buffer size
+
     uint32_t actual_frequency = common_hal_rp2pio_statemachine_get_frequency(&self->state_machine);
     if (actual_frequency < MIN_MIC_CLOCK) {
         mp_raise_ValueError(MP_ERROR_TEXT("sampling rate out of range"));

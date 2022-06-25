@@ -78,7 +78,9 @@ void common_hal_rotaryio_incrementalencoder_construct(rotaryio_incrementalencode
         0, MP_ARRAY_SIZE(encoder) - 1, // wrap settings
         PIO_ANY_OFFSET,
         PIO_FIFO_TYPE_DEFAULT,
-        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT);
+        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT,
+        0      // rx buffer size
+        );
 
     // We're guaranteed by the init code that some output will be available promptly
     uint8_t quiescent_state;

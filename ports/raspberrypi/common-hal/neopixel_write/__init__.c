@@ -62,7 +62,9 @@ void common_hal_neopixel_write(const digitalio_digitalinout_obj_t *digitalinout,
         0, -1, // wrap
         PIO_ANY_OFFSET,  // offset
         PIO_FIFO_TYPE_DEFAULT,
-        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT);
+        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT,
+        0);    // rx buffer size
+
     if (!ok) {
         // Do nothing. Maybe bitbang?
         return;
