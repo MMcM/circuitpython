@@ -38,7 +38,8 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     int offset,
     int fifo_type,
     int mov_status_type,
-    int mov_status_n);
+    int mov_status_n,
+    int rx_buffer_size);
 
 void common_hal_rp2pio_statemachine_deinit(rp2pio_statemachine_obj_t *self);
 bool common_hal_rp2pio_statemachine_deinited(rp2pio_statemachine_obj_t *self);

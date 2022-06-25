@@ -94,7 +94,8 @@ void common_hal_paralleldisplaybus_parallelbus_construct(paralleldisplaybus_para
         0, -1, // wrap settings
         PIO_ANY_OFFSET,
         PIO_FIFO_TYPE_DEFAULT,
-        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT);
+        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT,
+        0);    // rx buffer size
 
     common_hal_rp2pio_statemachine_never_reset(&self->state_machine);
 }
