@@ -18,6 +18,7 @@ bool common_hal_rp2pio_pins_are_sequential(size_t len, const mcu_pin_obj_t **pin
         if (pin->number != last_pin->number + 1) {
             return false;
         }
+        last_pin = pin;
     }
     return true;
 }

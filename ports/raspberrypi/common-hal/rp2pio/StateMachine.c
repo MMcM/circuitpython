@@ -22,6 +22,7 @@
 #include "src/rp2_common/hardware_irq/include/hardware/irq.h"
 
 #include "shared/runtime/interrupt_char.h"
+#include "py/gc.h"
 #include "py/obj.h"
 #include "py/objproperty.h"
 #include "py/runtime.h"
@@ -109,6 +110,38 @@ static void rp2pio_statemachine_clear_dma_read(int pio_index, int sm) {
         dma_channel_unclaim(channel_read);
     }
     SM_DMA_CLEAR_CHANNEL_READ(pio_index, sm);
+}
+
+static inline bool rx_buffer_is_empty(rp2pio_statemachine_obj_t *self) {
+    return self->rx_buffer_in == self->rx_buffer_out;
+}
+
+static inline bool rx_buffer_is_full(rp2pio_statemachine_obj_t *self) {
+    return (self->rx_buffer_in + 1) % self->rx_buffer_size == self->rx_buffer_out;
+}
+
+static inline uint32_t rx_buffer_get(rp2pio_statemachine_obj_t *self) {
+    uint32_t item = self->rx_buffer[self->rx_buffer_out];
+    self->rx_buffer_out = (self->rx_buffer_out + 1) % self->rx_buffer_size;
+    return item;
+}
+
+static inline void rx_buffer_put(rp2pio_statemachine_obj_t *self, uint32_t item) {
+    self->rx_buffer[self->rx_buffer_in] = item;
+    self->rx_buffer_in = (self->rx_buffer_in + 1) % self->rx_buffer_size;
+}
+
+static void rx_buffer_interrupt_handler(void *self_in) {
+    rp2pio_statemachine_obj_t *self = (rp2pio_statemachine_obj_t *)self_in;
+
+    while (!pio_sm_is_rx_fifo_empty(self->pio, self->state_machine)) {
+        uint32_t item = self->pio->rxf[self->state_machine];
+        rx_buffer_put(self, item);
+        if (rx_buffer_is_full(self)) {
+            self->pio->inte0 &= ~(PIO_IRQ0_INTF_SM0_RXNEMPTY_BITS << self->state_machine);
+            break;
+        }
+    }
 }
 
 static void _reset_statemachine(PIO pio, uint8_t sm, bool leave_pins) {
@@ -284,7 +317,8 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     int wrap_target, int wrap,
     int offset,
     int fifo_type,
-    int mov_status_type, int mov_status_n
+    int mov_status_type, int mov_status_n,
+    int rx_buffer_size
     ) {
     // Create a program id that isn't the pointer so we can store it without storing the original object.
     uint32_t program_id = ~((uint32_t)program);
@@ -445,6 +479,10 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
 
     enum pio_fifo_join join = compute_fifo_type(fifo_type, rx_fifo, tx_fifo);
 
+    if (mov_status_type >= 0) {
+        sm_config_set_mov_status(&c, mov_status_type, mov_status_n);
+    }
+
     self->fifo_depth = compute_fifo_depth(join);
 
     #if PICO_PIO_VERSION > 0
@@ -487,8 +525,22 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     pio_sm_init(self->pio, self->state_machine, offset, &c);
     common_hal_rp2pio_statemachine_run(self, init, init_len);
 
+    self->rx_buffer_in = self->rx_buffer_out = 0;
+    if (rx_buffer_size == 0) {
+        self->rx_buffer_size = 0;
+        self->rx_buffer = NULL;
+    } else {
+        self->rx_buffer_size = rx_buffer_size + 1; // Waste one word to distinguish full vs. empty.
+        self->rx_buffer = (uint32_t *)gc_alloc(self->rx_buffer_size * sizeof(uint32_t), false);
+        if (self->rx_buffer == NULL) {
+            mp_raise_msg(&mp_type_MemoryError, MP_ERROR_TEXT("Failed to allocate RX buffer"));
+        }
+        common_hal_rp2pio_statemachine_set_interrupt_handler(self, rx_buffer_interrupt_handler, self, PIO_IRQ0_INTF_SM0_RXNEMPTY_BITS);
+    }
+
     common_hal_rp2pio_statemachine_set_frequency(self, frequency);
     pio_sm_set_enabled(self->pio, self->state_machine, true);
+
     return true;
 }
 
@@ -632,8 +684,8 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     int wrap_target, int wrap,
     int offset,
     int fifo_type,
-    int mov_status_type,
-    int mov_status_n) {
+    int mov_status_type, int mov_status_n,
+    int rx_buffer_size) {
 
     // First, check that all pins are free OR already in use by any PIO if exclusive_pin_use is false.
     pio_pinmask_t pins_we_use = wait_gpio_mask;
@@ -748,7 +800,8 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
         sideset_enable,
         wrap_target, wrap, offset,
         fifo_type,
-        mov_status_type, mov_status_n);
+        mov_status_type, mov_status_n,
+        rx_buffer_size);
     if (!ok) {
         mp_raise_RuntimeError(MP_ERROR_TEXT("All state machines in use"));
     }
@@ -826,6 +879,8 @@ void rp2pio_statemachine_deinit(rp2pio_statemachine_obj_t *self, bool leave_pins
     _never_reset[pio_index][sm] = false;
     _reset_statemachine(self->pio, sm, leave_pins);
     self->state_machine = NUM_PIO_STATE_MACHINES;
+
+    self->rx_buffer = NULL;
 }
 
 void common_hal_rp2pio_statemachine_deinit(rp2pio_statemachine_obj_t *self) {
@@ -1029,7 +1084,49 @@ bool common_hal_rp2pio_statemachine_readinto(rp2pio_statemachine_obj_t *self, ui
     if (!self->in) {
         mp_raise_RuntimeError(MP_ERROR_TEXT("No in in program"));
     }
-    return _transfer(self, NULL, 0, 0, data, len, stride_in_bytes, false, swap);
+    if (self->rx_buffer == NULL) {
+        return _transfer(self, NULL, 0, 0, data, len, stride_in_bytes, false, swap);
+    }
+    len /= stride_in_bytes;
+    while (len > 0) {
+        if (rx_buffer_is_empty(self)) {
+            RUN_BACKGROUND_TASKS;
+            if (self->user_interruptible && mp_hal_is_interrupted()) {
+                break;
+            }
+        }
+        bool is_full = rx_buffer_is_full(self);
+        uint32_t item = rx_buffer_get(self);
+        if (is_full) {
+            self->pio->inte0 |= PIO_IRQ0_INTF_SM0_RXNEMPTY_BITS << self->state_machine;
+        }
+        switch (stride_in_bytes) {
+            case 4:
+                if (swap) {
+                    item = (item >> 24) |
+                        ((item >> 8) & 0xFF00) |
+                        ((item << 8) & 0xFF0000) |
+                        ((item << 24) & 0xFF000000);
+                }
+                *((uint32_t *)data) = item;
+                break;
+            case 2: {
+                uint16_t item16 = self->in_shift_right ? item >> 16 : item & 0xFFFF;
+                if (swap) {
+                    item16 = (item16 >> 8) | ((item16 & 0xFF) << 8);
+                }
+                *((uint16_t *)data) = item16;
+            }
+            break;
+            case 1:
+            default:
+                *data = self->in_shift_right ? item >> 24 : item & 0xFF;
+                break;
+        }
+        data += stride_in_bytes;
+        len--;
+    }
+    return true;
 }
 
 bool common_hal_rp2pio_statemachine_write_readinto(rp2pio_statemachine_obj_t *self,
@@ -1042,11 +1139,17 @@ bool common_hal_rp2pio_statemachine_write_readinto(rp2pio_statemachine_obj_t *se
 }
 
 bool common_hal_rp2pio_statemachine_get_rxstall(rp2pio_statemachine_obj_t *self) {
+    if (self->rx_buffer != NULL && rx_buffer_is_full(self)) {
+        return true;
+    }
     uint32_t stall_mask = 1 << (PIO_FDEBUG_RXSTALL_LSB + self->state_machine);
     return (self->pio->fdebug & stall_mask) != 0;
 }
 
 void common_hal_rp2pio_statemachine_clear_rxfifo(rp2pio_statemachine_obj_t *self) {
+    if (self->rx_buffer != NULL) {
+        self->rx_buffer_out = self->rx_buffer_in;
+    }
     uint8_t level = pio_sm_get_rx_fifo_level(self->pio, self->state_machine);
     uint32_t stall_mask = 1 << (PIO_FDEBUG_RXSTALL_LSB + self->state_machine);
     for (size_t i = 0; i < level; i++) {
@@ -1069,6 +1172,11 @@ void common_hal_rp2pio_statemachine_clear_txstall(rp2pio_statemachine_obj_t *sel
 
 size_t common_hal_rp2pio_statemachine_get_in_waiting(rp2pio_statemachine_obj_t *self) {
     uint8_t level = pio_sm_get_rx_fifo_level(self->pio, self->state_machine);
+    if (self->rx_buffer != NULL) {
+        uint16_t diff = ((self->rx_buffer_in + self->rx_buffer_size) - self->rx_buffer_out)
+            % self->rx_buffer_size; // Wrap around
+        return diff + level;    // Both interrupt buffer and FIFO
+    }
     return level;
 }
 

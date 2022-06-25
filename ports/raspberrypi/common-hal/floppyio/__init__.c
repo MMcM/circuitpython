@@ -102,7 +102,8 @@ int common_hal_floppyio_flux_readinto(void *buf, size_t len, digitalio_digitalin
         0, -1, // wrap
         PIO_ANY_OFFSET,  // offset
         PIO_FIFO_TYPE_DEFAULT,
-        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT
+        PIO_MOV_STATUS_DEFAULT, PIO_MOV_N_DEFAULT,
+        0      // rx buffer size
         );
     if (!ok) {
         mp_raise_RuntimeError(MP_ERROR_TEXT("All state machines in use"));
