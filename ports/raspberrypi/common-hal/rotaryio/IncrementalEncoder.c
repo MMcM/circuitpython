@@ -87,6 +87,7 @@ void common_hal_rotaryio_incrementalencoder_construct(rotaryio_incrementalencode
         NULL, 0, 0, 0x1f, // set pins
         NULL, 0, 0, 0x1f, // sideset pins
         false, // No sideset enable
+        false, // No sideset pindirs
         NULL, PULL_NONE, // jump pin
         0, // wait gpio pins
         true, // exclusive pin use
@@ -94,7 +95,9 @@ void common_hal_rotaryio_incrementalencoder_construct(rotaryio_incrementalencode
         false, // Wait for txstall
         false, 32, false, // in settings
         false, // Not user-interruptible.
-        0, MP_ARRAY_SIZE(encoder) - 1 // wrap settings
+        0, MP_ARRAY_SIZE(encoder) - 1, // wrap settings
+        -1, 0, // mov status
+        0      // rx buffer size
         );
 
     // We're guaranteed by the init code that some output will be available promptly

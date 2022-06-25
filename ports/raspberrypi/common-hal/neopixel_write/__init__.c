@@ -79,7 +79,11 @@ void common_hal_neopixel_write(const digitalio_digitalinout_obj_t *digitalinout,
         false, // claim pins
         false, // Not user-interruptible.
         false, // No sideset enable
-        0, -1); // wrap
+        false, // No sideset pindirs
+        0, -1, // wrap
+        -1, 0, // mov status
+        0);    // rx buffer size
+
     if (!ok) {
         // Do nothing. Maybe bitbang?
         return;

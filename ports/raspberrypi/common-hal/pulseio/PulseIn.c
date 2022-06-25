@@ -66,6 +66,7 @@ void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self,
         NULL, 0, 0, 0, // first set pin
         NULL, 0, 0, 0, // first sideset pin
         false, // No sideset enable
+        false, // No sideset pindirs
         NULL, PULL_NONE, // jump pin, jmp_pull
         0, // wait gpio pins
         true, // exclusive pin usage
@@ -73,7 +74,9 @@ void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self,
         false, // wait for TX stall
         true, 32, true, // RX auto pull every 32 bits. shift left to output msb first
         false, // Not user-interruptible.
-        0, -1); // wrap settings
+        0, -1, // wrap settings
+        -1, 0, // mov status
+        0);    // rx buffer size
 
     common_hal_pulseio_pulsein_pause(self);
 
