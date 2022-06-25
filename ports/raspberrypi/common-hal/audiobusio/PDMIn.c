@@ -72,6 +72,7 @@ void common_hal_audiobusio_pdmin_construct(audiobusio_pdmin_obj_t *self,
         NULL, 0, 0, 0x1f, // set pins
         clock_pin, 1, 0, 0x1f, // sideset pins
         false, // No sideset enable
+        false, // No sideset pindirs
         NULL, PULL_NONE, // jump pin
         0, // wait gpio pins
         true, // exclusive pin use
@@ -79,7 +80,8 @@ void common_hal_audiobusio_pdmin_construct(audiobusio_pdmin_obj_t *self,
         false, // Wait for txstall
         false, 32, true, // in settings
         false, // Not user-interruptible.
-        0, -1); // wrap settings
+        0, -1, // wrap settings
+        -1, 0); // mov status
 
     uint32_t actual_frequency = common_hal_rp2pio_statemachine_get_frequency(&self->state_machine);
     if (actual_frequency < MIN_MIC_CLOCK) {

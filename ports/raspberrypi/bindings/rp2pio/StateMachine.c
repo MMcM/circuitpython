@@ -79,6 +79,7 @@
 //|                  initial_sideset_pin_state: int = 0,
 //|                  initial_sideset_pin_direction: int = 0x1f,
 //|                  sideset_enable: bool = False,
+//|                  sideset_pindirs: bool = False,
 //|                  jmp_pin: Optional[microcontroller.Pin] = None,
 //|                  jmp_pin_pull: Optional[digitalio.Pull] = None,
 //|                  exclusive_pin_use: bool = True,
@@ -92,6 +93,8 @@
 //|                  user_interruptible: bool = True,
 //|                  wrap_target: int = 0,
 //|                  wrap: int = -1,
+//|                  mov_status_type: int = -1,
+//|                  mov_status_n: int = 0,
 //|                 ) -> None:
 //|
 //|         """Construct a StateMachine object on the given pins with the given program.
@@ -117,6 +120,7 @@
 //|         :param int initial_sideset_pin_state: the initial output value for sideset pins starting at first_sideset_pin
 //|         :param int initial_sideset_pin_direction: the initial output direction for sideset pins starting at first_sideset_pin
 //|         :param bool sideset_enable: True when the top sideset bit is to enable. This should be used with the ".side_set # opt" directive
+//|         :param bool sideset_pindirs: True when the sideset affects direction and not value. This should be used with the ".side_set # opt pindirs" directive
 //|         :param ~microcontroller.Pin jmp_pin: the pin which determines the branch taken by JMP PIN instructions
 //|         :param ~digitalio.Pull jmp_pin_pull: The pull value for the jmp pin, default is no pull.
 //|         :param bool exclusive_pin_use: When True, do not share any pins with other state machines. Pins are never shared with other peripherals
@@ -146,6 +150,8 @@
 //|         :param int wrap: The instruction after which to wrap to the ``wrap``
 //|             instruction. As a special case, -1 (the default) indicates the
 //|             last instruction of the program.
+//|         :param int mov_status_type: source for ``mov STATUS`` 0 TX FIFO less than, 1 RX FIFO less than.
+//|         :param int mov_status_n: comparison parameter for ``mov STATUS``.
 //|         """
 //|         ...
 //|
@@ -159,15 +165,15 @@ STATIC mp_obj_t rp2pio_statemachine_make_new(const mp_obj_type_t *type, size_t n
            ARG_pull_in_pin_up, ARG_pull_in_pin_down,
            ARG_first_set_pin, ARG_set_pin_count, ARG_initial_set_pin_state, ARG_initial_set_pin_direction,
            ARG_first_sideset_pin, ARG_sideset_pin_count, ARG_initial_sideset_pin_state, ARG_initial_sideset_pin_direction,
-           ARG_sideset_enable,
+           ARG_sideset_enable, ARG_sideset_pindirs,
            ARG_jmp_pin, ARG_jmp_pin_pull,
            ARG_exclusive_pin_use,
            ARG_auto_pull, ARG_pull_threshold, ARG_out_shift_right,
            ARG_wait_for_txstall,
            ARG_auto_push, ARG_push_threshold, ARG_in_shift_right,
            ARG_user_interruptible,
-           ARG_wrap_target,
-           ARG_wrap,};
+           ARG_wrap_target, ARG_wrap,
+           ARG_mov_status_type, ARG_mov_status_n,};
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_program, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_frequency, MP_ARG_REQUIRED | MP_ARG_INT },
@@ -194,6 +200,7 @@ STATIC mp_obj_t rp2pio_statemachine_make_new(const mp_obj_type_t *type, size_t n
         { MP_QSTR_initial_sideset_pin_direction, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0x1f} },
 
         { MP_QSTR_sideset_enable, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
+        { MP_QSTR_sideset_pindirs, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
 
         { MP_QSTR_jmp_pin, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
         { MP_QSTR_jmp_pin_pull, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
@@ -210,6 +217,9 @@ STATIC mp_obj_t rp2pio_statemachine_make_new(const mp_obj_type_t *type, size_t n
 
         { MP_QSTR_wrap_target, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_wrap, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} },
+
+        { MP_QSTR_mov_status_type, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} },
+        { MP_QSTR_mov_status_n, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -282,7 +292,7 @@ STATIC mp_obj_t rp2pio_statemachine_make_new(const mp_obj_type_t *type, size_t n
         first_in_pin, args[ARG_in_pin_count].u_int, args[ARG_pull_in_pin_up].u_int, args[ARG_pull_in_pin_down].u_int,
         first_set_pin, args[ARG_set_pin_count].u_int, args[ARG_initial_set_pin_state].u_int, args[ARG_initial_set_pin_direction].u_int,
         first_sideset_pin, args[ARG_sideset_pin_count].u_int, args[ARG_initial_sideset_pin_state].u_int, args[ARG_initial_sideset_pin_direction].u_int,
-        args[ARG_sideset_enable].u_bool,
+        args[ARG_sideset_enable].u_bool, args[ARG_sideset_pindirs].u_bool,
         jmp_pin, jmp_pin_pull,
         0,
         args[ARG_exclusive_pin_use].u_bool,
@@ -290,7 +300,8 @@ STATIC mp_obj_t rp2pio_statemachine_make_new(const mp_obj_type_t *type, size_t n
         args[ARG_wait_for_txstall].u_bool,
         args[ARG_auto_push].u_bool, push_threshold, args[ARG_in_shift_right].u_bool,
         args[ARG_user_interruptible].u_bool,
-        wrap_target, wrap);
+        wrap_target, wrap,
+        args[ARG_mov_status_type].u_int, args[ARG_mov_status_n].u_int);
     return MP_OBJ_FROM_PTR(self);
 }
 

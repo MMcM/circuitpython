@@ -112,6 +112,7 @@ void common_hal_imagecapture_parallelimagecapture_construct(imagecapture_paralle
         NULL, 0, 0, 0, // sideset pins
         #endif
         false, // No sideset enable
+        false, // No sideset pindirs
         NULL, PULL_NONE, // jump pin
         (1 << vertical_sync->number) | (1 << horizontal_reference->number) | (1 << data_clock->number), // wait gpio pins
         true, // exclusive pin use
@@ -119,7 +120,9 @@ void common_hal_imagecapture_parallelimagecapture_construct(imagecapture_paralle
         false, // wait for txstall
         true, 32, true,  // in settings
         false, // Not user-interruptible.
-        2, 5); // wrap settings
+        2, 5, // wrap settings
+        -1, 0); // mov status
+
 
 
     PIO pio = self->state_machine.pio;

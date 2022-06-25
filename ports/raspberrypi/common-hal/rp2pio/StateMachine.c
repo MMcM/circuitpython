@@ -192,8 +192,9 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     bool auto_push, uint8_t push_threshold, bool in_shift_right,
     bool claim_pins,
     bool user_interruptible,
-    bool sideset_enable,
-    int wrap_target, int wrap
+    bool sideset_enable, bool sideset_pindirs,
+    int wrap_target, int wrap,
+    int mov_status_type, int mov_status_n
     ) {
     // Create a program id that isn't the pointer so we can store it without storing the original object.
     uint32_t program_id = ~((uint32_t)program);
@@ -311,7 +312,7 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
         if (sideset_enable) {
             total_sideset_bits += 1;
         }
-        sm_config_set_sideset(&c, total_sideset_bits, sideset_enable, false /* pin direction */);
+        sm_config_set_sideset(&c, total_sideset_bits, sideset_enable, sideset_pindirs);
         sm_config_set_sideset_pins(&c, first_sideset_pin->number);
     }
     if (jmp_pin != NULL) {
@@ -331,6 +332,10 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     sm_config_set_wrap(&c, wrap_target, wrap);
     sm_config_set_in_shift(&c, in_shift_right, auto_push, push_threshold);
     sm_config_set_out_shift(&c, out_shift_right, auto_pull, pull_threshold);
+
+    if (mov_status_type >= 0) {
+        sm_config_set_mov_status(&c, mov_status_type, mov_status_n);
+    }
 
     enum pio_fifo_join join = PIO_FIFO_JOIN_NONE;
     if (!rx_fifo) {
@@ -383,7 +388,7 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     uint32_t pull_pin_up, uint32_t pull_pin_down,
     const mcu_pin_obj_t *first_set_pin, uint8_t set_pin_count, uint32_t initial_set_pin_state, uint32_t initial_set_pin_direction,
     const mcu_pin_obj_t *first_sideset_pin, uint8_t sideset_pin_count, uint32_t initial_sideset_pin_state, uint32_t initial_sideset_pin_direction,
-    bool sideset_enable,
+    bool sideset_enable, bool sideset_pindirs,
     const mcu_pin_obj_t *jmp_pin, digitalio_pull_t jmp_pull,
     uint32_t wait_gpio_mask,
     bool exclusive_pin_use,
@@ -391,7 +396,8 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     bool wait_for_txstall,
     bool auto_push, uint8_t push_threshold, bool in_shift_right,
     bool user_interruptible,
-    int wrap_target, int wrap) {
+    int wrap_target, int wrap,
+    int mov_status_type, int mov_status_n) {
 
     // First, check that all pins are free OR already in use by any PIO if exclusive_pin_use is false.
     uint32_t pins_we_use = wait_gpio_mask;
@@ -563,8 +569,9 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
         auto_push, push_threshold, in_shift_right,
         true /* claim pins */,
         user_interruptible,
-        sideset_enable,
-        wrap_target, wrap);
+        sideset_enable, sideset_pindirs,
+        wrap_target, wrap,
+        mov_status_type, mov_status_n);
     if (!ok) {
         mp_raise_RuntimeError(translate("All state machines in use"));
     }
