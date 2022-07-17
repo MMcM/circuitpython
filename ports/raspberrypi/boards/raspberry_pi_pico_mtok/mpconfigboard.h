@@ -1,0 +1,6 @@
+#define MICROPY_HW_BOARD_NAME "Raspberry Pi Pico"
+#define MICROPY_HW_MCU_NAME "rp2040"
+
+#define MICROPY_PY_COLLECTIONS_DEQUE 1
+
+#define CIRCUITPY_REPL_LOGO 0
