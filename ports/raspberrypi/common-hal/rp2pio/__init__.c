@@ -38,6 +38,7 @@ bool common_hal_rp2pio_pins_are_sequential(size_t len, mp_obj_t *items) {
         if (pin->number != last_pin->number + 1) {
             return false;
         }
+        last_pin = pin;
     }
     return true;
 }
