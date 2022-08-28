@@ -690,6 +690,7 @@ SRC_SHARED_MODULE_ALL = \
 	keypad/KeyMatrix.c \
 	keypad/ShiftRegisterKeys.c \
 	keypad/Keys.c \
+	keypad/MuxStrobeKeys.c \
 	max3421e/__init__.c \
 	max3421e/Max3421E.c \
 	memorymonitor/__init__.c \

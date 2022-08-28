@@ -18,6 +18,7 @@ typedef struct {
     mp_obj_tuple_t *row_digitalinouts;
     mp_obj_tuple_t *column_digitalinouts;
     bool columns_to_anodes;
+    mp_uint_t sense_delay_us;
 } keypad_keymatrix_obj_t;
 
 void keypad_keymatrix_scan(keypad_keymatrix_obj_t *self);
