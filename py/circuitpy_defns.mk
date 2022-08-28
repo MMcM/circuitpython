@@ -570,6 +570,7 @@ SRC_SHARED_MODULE_ALL = \
 	keypad/KeyMatrix.c \
 	keypad/ShiftRegisterKeys.c \
 	keypad/Keys.c \
+	keypad/MuxStrobeKeys.c \
 	memorymonitor/__init__.c \
 	memorymonitor/AllocationAlarm.c \
 	memorymonitor/AllocationSize.c \
