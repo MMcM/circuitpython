@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2021 Dan Halbert for Adafruit Industries
+ * Copyright (c) 2022 xxx for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,22 +24,31 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_KEYPAD_KEYMATRIX_H
-#define MICROPY_INCLUDED_SHARED_BINDINGS_KEYPAD_KEYMATRIX_H
+#ifndef MICROPY_INCLUDED_SHARED_MODULE_KEYPAD_MUXSTROBEKEYS_H
+#define MICROPY_INCLUDED_SHARED_MODULE_KEYPAD_MUXSTROBEKEYS_H
 
-#include "py/objlist.h"
-#include "shared-module/keypad/KeyMatrix.h"
+#include "py/obj.h"
+#include "py/objtuple.h"
 
-extern const mp_obj_type_t keypad_keymatrix_type;
+#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/keypad/__init__.h"
+#include "shared-module/keypad/EventQueue.h"
 
-void common_hal_keypad_keymatrix_construct(keypad_keymatrix_obj_t *self, mp_uint_t num_row_pins, const mcu_pin_obj_t *row_pins[], mp_uint_t num_column_pins, const mcu_pin_obj_t *column_pins[], bool columns_to_anodes, mp_float_t interval, size_t max_events, mp_float_t sense_delay);
+typedef struct {
+    KEYPAD_SCANNER_COMMON_FIELDS;
+    mp_obj_tuple_t *sense_digitalinouts;
+    bool sense_value;
+    mp_uint_t sense_delay_us;
+    mp_obj_tuple_t *address_digitalinouts;
+    mp_uint_t address_start;
+    mp_uint_t address_end;
+    bool address_value;
+    digitalio_digitalinout_obj_t *enable_digitalinout;
+    bool enable_value;
+    digitalio_digitalinout_obj_t *gate_digitalinout;
+    bool gate_value;
+} keypad_muxstrobekeys_obj_t;
 
-void common_hal_keypad_keymatrix_deinit(keypad_keymatrix_obj_t *self);
+void keypad_muxstrobekeys_scan(keypad_muxstrobekeys_obj_t *self);
 
-void common_hal_keypad_keymatrix_key_number_to_row_column(keypad_keymatrix_obj_t *self, mp_uint_t key_number, mp_uint_t *row, mp_uint_t *column);
-mp_uint_t common_hal_keypad_keymatrix_row_column_to_key_number(keypad_keymatrix_obj_t *self, mp_uint_t row, mp_uint_t column);
-
-size_t common_hal_keypad_keymatrix_get_column_count(keypad_keymatrix_obj_t *self);
-size_t common_hal_keypad_keymatrix_get_row_count(keypad_keymatrix_obj_t *self);
-
-#endif  // MICROPY_INCLUDED_SHARED_BINDINGS_KEYPAD_KEYMATRIX_H
+#endif  // MICROPY_INCLUDED_SHARED_MODULE_KEYPAD_MUXSTROBEKEYS_H

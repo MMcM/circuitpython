@@ -59,6 +59,7 @@
 //|         columns_to_anodes: bool = True,
 //|         interval: float = 0.020,
 //|         max_events: int = 64,
+//|         sense_delay: float = 0,
 //|     ) -> None:
 //|         """
 //|         Create a `Keys` object that will scan the key matrix attached to the given row and column pins.
@@ -82,6 +83,7 @@
 //|           maximum number of key transition events that are saved.
 //|           Must be >= 1.
 //|           If a new event arrives when the queue is full, the oldest event is discarded.
+//|         :param float sense_delay: Fraction of a second to delay after setting row pin before reading column pins.
 //|         """
 //|         ...
 
@@ -89,13 +91,14 @@ STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
     #if CIRCUITPY_KEYPAD_KEYMATRIX
     keypad_keymatrix_obj_t *self = m_new_obj(keypad_keymatrix_obj_t);
     self->base.type = &keypad_keymatrix_type;
-    enum { ARG_row_pins, ARG_column_pins, ARG_columns_to_anodes, ARG_interval, ARG_max_events };
+    enum { ARG_row_pins, ARG_column_pins, ARG_columns_to_anodes, ARG_interval, ARG_max_events, ARG_sense_delay };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_row_pins, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_column_pins, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_columns_to_anodes, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = true} },
         { MP_QSTR_interval, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_max_events, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 64} },
+        { MP_QSTR_sense_delay, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -110,6 +113,7 @@ STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
     const mp_float_t interval =
         mp_arg_validate_obj_float_non_negative(args[ARG_interval].u_obj, 0.020f, MP_QSTR_interval);
     const size_t max_events = (size_t)mp_arg_validate_int_min(args[ARG_max_events].u_int, 1, MP_QSTR_max_events);
+    const mp_float_t sense_delay = mp_arg_validate_obj_float_non_negative(args[ARG_sense_delay].u_obj, 0.0f, MP_QSTR_sense_delay);
 
     const mcu_pin_obj_t *row_pins_array[num_row_pins];
     const mcu_pin_obj_t *column_pins_array[num_column_pins];
@@ -128,7 +132,7 @@ STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
         column_pins_array[column] = pin;
     }
 
-    common_hal_keypad_keymatrix_construct(self, num_row_pins, row_pins_array, num_column_pins, column_pins_array, args[ARG_columns_to_anodes].u_bool, interval, max_events);
+    common_hal_keypad_keymatrix_construct(self, num_row_pins, row_pins_array, num_column_pins, column_pins_array, args[ARG_columns_to_anodes].u_bool, interval, max_events, sense_delay);
     return MP_OBJ_FROM_PTR(self);
     #else
     mp_raise_NotImplementedError_varg(translate("%q"), MP_QSTR_KeyMatrix);
