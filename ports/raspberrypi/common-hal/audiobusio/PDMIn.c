@@ -81,7 +81,8 @@ void common_hal_audiobusio_pdmin_construct(audiobusio_pdmin_obj_t *self,
         false, 32, true, // in settings
         false, // Not user-interruptible.
         0, -1, // wrap settings
-        -1, 0); // mov status
+        -1, 0, // mov status
+        0);    // rx buffer size
 
     uint32_t actual_frequency = common_hal_rp2pio_statemachine_get_frequency(&self->state_machine);
     if (actual_frequency < MIN_MIC_CLOCK) {

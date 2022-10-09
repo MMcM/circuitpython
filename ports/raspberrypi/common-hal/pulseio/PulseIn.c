@@ -77,7 +77,8 @@ void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self,
             false, // No sideset enable
             false, // No sideset pindirs
             0, -1, // wrap settings
-            -1, 0); // mov status
+            -1, 0, // mov status
+            0);    // rx buffer size
 
     if (!ok) {
         mp_raise_RuntimeError(translate("All state machines in use"));

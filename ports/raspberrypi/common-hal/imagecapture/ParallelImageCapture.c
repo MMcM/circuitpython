@@ -121,7 +121,8 @@ void common_hal_imagecapture_parallelimagecapture_construct(imagecapture_paralle
         true, 32, true,  // in settings
         false, // Not user-interruptible.
         2, 5, // wrap settings
-        -1, 0); // mov status
+        -1, 0, // mov status
+        0);    // rx buffer size
 
 
 

@@ -112,7 +112,8 @@ void common_hal_paralleldisplay_parallelbus_construct(paralleldisplay_parallelbu
         false, 32, true, // RX setting we don't use
         false, // Not user-interruptible.
         0, -1, // wrap settings
-        -1, 0); // mov status
+        -1, 0, // mov status
+        0);    // rx buffer size
 
     common_hal_rp2pio_statemachine_never_reset(&self->state_machine);
 }

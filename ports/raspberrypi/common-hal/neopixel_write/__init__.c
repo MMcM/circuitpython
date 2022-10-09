@@ -81,7 +81,8 @@ void common_hal_neopixel_write(const digitalio_digitalinout_obj_t *digitalinout,
         false, // No sideset enable
         false, // No sideset pindirs
         0, -1, // wrap
-        -1, 0); // mov status
+        -1, 0, // mov status
+        0);    // rx buffer size
 
     if (!ok) {
         // Do nothing. Maybe bitbang?

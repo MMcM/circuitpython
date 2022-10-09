@@ -137,7 +137,8 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t *self,
         false, 32, false, // in settings
         false, // Not user-interruptible.
         0, -1, // wrap settings
-        -1, 0); // mov status
+        -1, 0, // mov status
+        0);    // rx buffer size
 
     self->playing = false;
     audio_dma_init(&self->dma);

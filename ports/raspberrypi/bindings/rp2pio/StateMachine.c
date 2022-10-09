@@ -95,6 +95,7 @@
 //|                  wrap: int = -1,
 //|                  mov_status_type: int = -1,
 //|                  mov_status_n: int = 0,
+//|                  rx_buffer_size: int = 0,
 //|                 ) -> None:
 //|
 //|         """Construct a StateMachine object on the given pins with the given program.
@@ -152,6 +153,8 @@
 //|             last instruction of the program.
 //|         :param int mov_status_type: source for ``mov STATUS`` 0 TX FIFO less than, 1 RX FIFO less than.
 //|         :param int mov_status_n: comparison parameter for ``mov STATUS``.
+//|         :param int rx_buffer_size: Size of a buffer to fill at interrupt level, so that the PIO program does not stall
+//|             when the main program is not keeping up with it.
 //|         """
 //|         ...
 //|
@@ -173,7 +176,8 @@ STATIC mp_obj_t rp2pio_statemachine_make_new(const mp_obj_type_t *type, size_t n
            ARG_auto_push, ARG_push_threshold, ARG_in_shift_right,
            ARG_user_interruptible,
            ARG_wrap_target, ARG_wrap,
-           ARG_mov_status_type, ARG_mov_status_n,};
+           ARG_mov_status_type, ARG_mov_status_n,
+           ARG_rx_buffer_size,};
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_program, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_frequency, MP_ARG_REQUIRED | MP_ARG_INT },
@@ -220,6 +224,8 @@ STATIC mp_obj_t rp2pio_statemachine_make_new(const mp_obj_type_t *type, size_t n
 
         { MP_QSTR_mov_status_type, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} },
         { MP_QSTR_mov_status_n, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
+
+        { MP_QSTR_rx_buffer_size, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -301,7 +307,8 @@ STATIC mp_obj_t rp2pio_statemachine_make_new(const mp_obj_type_t *type, size_t n
         args[ARG_auto_push].u_bool, push_threshold, args[ARG_in_shift_right].u_bool,
         args[ARG_user_interruptible].u_bool,
         wrap_target, wrap,
-        args[ARG_mov_status_type].u_int, args[ARG_mov_status_n].u_int);
+        args[ARG_mov_status_type].u_int, args[ARG_mov_status_n].u_int,
+        args[ARG_rx_buffer_size].u_int);
     return MP_OBJ_FROM_PTR(self);
 }
 

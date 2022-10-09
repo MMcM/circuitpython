@@ -65,6 +65,12 @@ typedef struct {
     sm_buf_info current, once, loop;
     int background_stride_in_bytes;
     bool dma_completed, byteswap;
+
+    // interrupt RX buffer
+    uint32_t *rx_buffer;
+    uint16_t rx_buffer_size;
+    uint16_t rx_buffer_in;
+    uint16_t rx_buffer_out;
 } rp2pio_statemachine_obj_t;
 
 void reset_rp2pio_statemachine(void);
@@ -89,7 +95,8 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     bool interruptible,
     bool sideset_enable, bool sideset_pindirs,
     int wrap_target, int wrap,
-    int mov_status_type, int mov_status_n);
+    int mov_status_type, int mov_status_n,
+    int rx_buffer_size);
 
 uint8_t rp2pio_statemachine_program_offset(rp2pio_statemachine_obj_t *self);
 
