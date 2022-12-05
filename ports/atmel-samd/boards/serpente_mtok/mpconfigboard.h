@@ -25,3 +25,5 @@
 // Not connected
 #define IGNORE_PIN_PA13     1
 #define IGNORE_PIN_PA28     1
+
+#define CIRCUITPY_DEFAULT_STACK_SIZE 0x1000
