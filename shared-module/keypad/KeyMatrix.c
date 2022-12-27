@@ -32,6 +32,7 @@
 #include "shared-bindings/keypad/EventQueue.h"
 #include "shared-bindings/keypad/KeyMatrix.h"
 #include "shared-bindings/keypad/__init__.h"
+#include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/supervisor/__init__.h"
 #include "shared-bindings/util.h"
 #include "supervisor/port.h"
@@ -49,7 +50,7 @@ static mp_uint_t row_column_to_key_number(keypad_keymatrix_obj_t *self, mp_uint_
     return row * self->column_digitalinouts->len + column;
 }
 
-void common_hal_keypad_keymatrix_construct(keypad_keymatrix_obj_t *self, mp_uint_t num_row_pins, const mcu_pin_obj_t *row_pins[], mp_uint_t num_column_pins, const mcu_pin_obj_t *column_pins[], bool columns_to_anodes, mp_float_t interval, size_t max_events) {
+void common_hal_keypad_keymatrix_construct(keypad_keymatrix_obj_t *self, mp_uint_t num_row_pins, const mcu_pin_obj_t *row_pins[], mp_uint_t num_column_pins, const mcu_pin_obj_t *column_pins[], bool columns_to_anodes, mp_float_t interval, size_t max_events, mp_float_t sense_delay) {
 
     mp_obj_t row_dios[num_row_pins];
     for (size_t row = 0; row < num_row_pins; row++) {
@@ -70,6 +71,8 @@ void common_hal_keypad_keymatrix_construct(keypad_keymatrix_obj_t *self, mp_uint
         column_dios[column] = dio;
     }
     self->column_digitalinouts = mp_obj_new_tuple(num_column_pins, column_dios);
+
+    self->sense_delay_us = (mp_uint_t)(sense_delay * 1000000);
 
     self->currently_pressed = (bool *)gc_alloc(sizeof(bool) * num_row_pins * num_column_pins, false, false);
     self->previously_pressed = (bool *)gc_alloc(sizeof(bool) * num_row_pins * num_column_pins, false, false);
@@ -134,6 +137,9 @@ static void keymatrix_scan_now(void *self_in, mp_obj_t timestamp) {
         digitalio_digitalinout_obj_t *row_dio = self->row_digitalinouts->items[row];
         common_hal_digitalio_digitalinout_switch_to_output(
             row_dio, !self->columns_to_anodes, DRIVE_MODE_PUSH_PULL);
+        if (self->sense_delay_us) {
+            common_hal_mcu_delay_us(self->sense_delay_us);
+        }
 
         for (size_t column = 0; column < common_hal_keypad_keymatrix_get_column_count(self); column++) {
             mp_uint_t key_number = row_column_to_key_number(self, row, column);
