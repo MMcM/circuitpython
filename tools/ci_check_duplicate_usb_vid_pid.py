@@ -61,10 +61,13 @@ DEFAULT_CLUSTERLIST = {
         "espressif_esp32s2_devkitc_1_n4r2",
         "espressif_esp32s2_devkitc_1_n8r2",
     ],
-    "0x239A:0x102E": ["weact_studio_pico", "weact_studio_pico_16mb"],
+    "0x239A:0x102E": ["weact_studio_pico", "weact_studio_pico_8mb", "weact_studio_pico_16mb"],
     "0x303A:0x8166": ["yd_esp32_s3_n8r8", "yd_esp32_s3_n16r8"],
     "0x2341:0x056B": ["arduino_nano_esp32s3", "arduino_nano_esp32s3_inverted_statusled"],
     "0x2E8A:0x1020": ["waveshare_rp2040_plus_4mb", "waveshare_rp2040_plus_16mb"],
+    "0x2886:0x002F": ["seeeduino_xiao", "seeeduino_xiao_i2c"],
+    "0x239A:0x8058": ["serpente", "serpente_mtok"],
+    "0x239A:0x80CC": ["qtpy_m0", "qtpy_m0_i2c"],
 }
 
 cli_parser = argparse.ArgumentParser(
