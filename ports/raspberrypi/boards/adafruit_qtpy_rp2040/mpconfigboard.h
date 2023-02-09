@@ -21,3 +21,5 @@
 
 #define CIRCUITPY_BOARD_UART        (1)
 #define CIRCUITPY_BOARD_UART_PIN    {{.tx = &pin_GPIO20, .rx = &pin_GPIO5}}
+
+#define CIRCUITPY_KEYPAD_MUX_STROBE 1
