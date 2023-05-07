@@ -43,6 +43,11 @@ digitalinout_result_t common_hal_digitalio_digitalinout_construct(
     self->output = false;
     self->open_drain = false;
 
+    // Counteract reset_pin_number for JTAG pins.
+    if (22 <= pin->number && pin->number <= 27) {
+        gpio_set_function(pin->number, GPIO_FUNCTION_INPUT);
+    }
+
     return DIGITALINOUT_OK;
 }
 
