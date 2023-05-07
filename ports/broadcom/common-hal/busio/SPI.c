@@ -164,6 +164,9 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
     if (self->index == 1 || self->index == 2) {
         SPI1_Type *p = aux_spi[self->index];
         uint32_t source_clock = vcmailbox_get_clock_rate(VCMAILBOX_CLOCK_CORE);
+        if (source_clock == 0) {
+            source_clock = 250000000;
+        }
         uint16_t clock_divider = source_clock / baudrate;
         if (source_clock % baudrate > 0) {
             clock_divider += 2;
@@ -182,6 +185,9 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
         p->CS = polarity << SPI0_CS_CPOL_Pos |
             phase << SPI0_CS_CPHA_Pos;
         uint32_t source_clock = vcmailbox_get_clock_rate(VCMAILBOX_CLOCK_CORE);
+        if (source_clock == 0) {
+            source_clock = 250000000;
+        }
         uint16_t clock_divider = source_clock / baudrate;
         if (source_clock % baudrate > 0) {
             clock_divider += 2;
