@@ -26,8 +26,9 @@ typedef struct {
     const mcu_periph_obj_t *tx;
     const mcu_periph_obj_t *rx;
 
+    size_t frame_size;
     ringbuf_t ringbuf;
-    uint8_t rx_char;
+    uint8_t rx_chars[2];
 
     uint32_t baudrate;
     uint32_t timeout_ms;
