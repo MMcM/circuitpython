@@ -191,6 +191,8 @@ void common_hal_busio_uart_construct(busio_uart_obj_t *self,
 
     }
 
+    self->frame_size = (bits == 9) ? 2 : 1;
+
     // Init buffer for rx and claim pins
     if (self->rx != NULL) {
         // Use the provided buffer when given.
@@ -217,7 +219,7 @@ void common_hal_busio_uart_construct(busio_uart_obj_t *self,
 
     // start the receive interrupt chain
     HAL_NVIC_DisableIRQ(self->irq); // prevent handle lock contention
-    HAL_UART_Receive_IT(&self->handle, &self->rx_char, 1);
+    HAL_UART_Receive_IT(&self->handle, self->rx_chars, 1);
     HAL_NVIC_SetPriority(self->irq, UART_IRQPRI, UART_IRQSUB_PRI);
     HAL_NVIC_EnableIRQ(self->irq);
 
@@ -276,7 +278,7 @@ size_t common_hal_busio_uart_read(busio_uart_obj_t *self, uint8_t *data, size_t 
         RUN_BACKGROUND_TASKS;
         // restart if it failed in the callback
         if (errflag != HAL_OK) {
-            errflag = HAL_UART_Receive_IT(&self->handle, &self->rx_char, 1);
+            errflag = HAL_UART_Receive_IT(&self->handle, self->rx_chars, 1);
         }
         // Allow user to break out of a timeout with a KeyboardInterrupt.
         if (mp_hal_is_interrupted()) {
@@ -305,7 +307,7 @@ size_t common_hal_busio_uart_write(busio_uart_obj_t *self, const uint8_t *data, 
 
     // Disable UART IRQ to avoid resource hazards in Rx IRQ handler
     HAL_NVIC_DisableIRQ(self->irq);
-    HAL_StatusTypeDef ret = HAL_UART_Transmit_IT(&self->handle, (uint8_t *)data, len);
+    HAL_StatusTypeDef ret = HAL_UART_Transmit_IT(&self->handle, (uint8_t *)data, len / self->frame_size);
     HAL_NVIC_EnableIRQ(self->irq);
 
     if (HAL_OK == ret) {
@@ -330,10 +332,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *handle) {
             if ((HAL_UART_GetState(handle) & HAL_UART_STATE_BUSY_RX) == HAL_UART_STATE_BUSY_RX) {
                 return;
             }
-            ringbuf_put_n(&context->ringbuf, &context->rx_char, 1);
-            errflag = HAL_UART_Receive_IT(handle, &context->rx_char, 1);
+            ringbuf_put_n(&context->ringbuf, context->rx_chars, context->frame_size);
+            errflag = HAL_UART_Receive_IT(handle, context->rx_chars, 1);
             if (context->sigint_enabled) {
-                if (context->rx_char == CHAR_CTRL_C) {
+                if (context->rx_chars[0] == CHAR_CTRL_C) {
                     common_hal_busio_uart_clear_rx_buffer(context);
                     mp_sched_keyboard_interrupt();
                 }
@@ -343,7 +345,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *handle) {
             // TODO: Implement error handling here
             #else
             while (HAL_BUSY == errflag) {
-                errflag = HAL_UART_Receive_IT(handle, &context->rx_char, 1);
+                errflag = HAL_UART_Receive_IT(handle, context->rx_chars, 1);
             }
             #endif
 
@@ -366,7 +368,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *UartHandle) {
     for (int i = 0; i < 7; i++) {
         busio_uart_obj_t *context = (busio_uart_obj_t *)MP_STATE_PORT(cpy_uart_obj_all)[i];
         if (UartHandle == &context->handle) {
-            HAL_UART_Receive_IT(UartHandle, &context->rx_char, 1);
+            HAL_UART_Receive_IT(UartHandle, context->rx_chars, 1);
             return;
         }
     }
